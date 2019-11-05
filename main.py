@@ -19,11 +19,42 @@ logger = logging.getLogger(__name__)
 
 
 
+"""
+	[Dictionary] p (raw holding position) => 
+		[Dictionary] Geneva holding position
+"""
+holdingPosition = lambda date, p: \
+	{ 'portfolio': p['Custody Account Name']
+	, 'custodian': ''
+	, 'date': date
+	, 'geneva_investment_id': ''
+	, 'ISIN': '' 
+	, 'bloomberg_figi': ''
+	, 'name': p['Securities name']
+	, 'currency': p['Market Price Currency']
+	, 'quantity': p['Holding']
+	}
+
+
+
+"""
+	[Dictionary] p (raw cash position) => 
+		[Dictionary] Geneva cash position
+"""
+cashPosition = lambda date, p: \
+	{ 'portfolio': p['Portfolio']\
+	, 'custodian': ''\
+	, 'date': date\
+	, 'currency': p['account_ccy_code']\
+	, 'balance': stringToFloat(p['ledger_bal_in_acct_ccy'])\
+	}
+
+
 def skip2(it):
 	"""
-	[Iterable] it => [Iterable] litiitnes
+	[Iterable] it => [Iterable] it, with the first 2 elements skipped
 
-	Skip the first 2 items in iterator "it"
+	NOT a pure function, the input iterator is changed.
 	"""
 	pop(it)
 	pop(it)
@@ -43,16 +74,15 @@ getPositions = lambda file: \
 
 
 """
-	[Iterable] lines => [Iterable] holding lines
+	[Iterable] group of lines => [Iterable] single line
 
-	In the BOCHK position file, a position has multiple lines, represent its
-	quantity on trade day basis, settlement day basis, and in transit.
-
-	We only the trade day quantity.
+	For each holding position, the "Holding Details" line contains
+	trade day quantity, the "Sub-Total" line contains currency, price.
+	We need to merge them into a single line.
 """
-consolidate = lambda lines: \
-	map( lambda t: pop(t[1])\
-	   , groupby(lines, lambda line: line[3]))
+consolidate = lambda group: \
+	map( lambda t: t[0] if t[0] != '' else t[1]
+	   , zip(pop(group), pop(group)))
 
 
 
@@ -62,17 +92,17 @@ consolidate = lambda lines: \
 	position: [Dictionary] header -> value
 """
 getRawPositions = compose(
-	  lambda t: map(lambda line: dict(zip(t[0], line)), t[1])\
-	, lambda t: ( t[0]\
-				, map( lambda keynGroup: pop(keynGroup[1])\
-	   				 , groupby(t[1], lambda line: line[8]))\
-				)\
-	, lambda t: ( t[0]\
-				, filter( lambda line: line[0] != '' and line[4] != 'All'\
-						, map(list, t[1]))\
+	  lambda t: map(lambda line: dict(zip(t[0], line)), t[1])
+	, lambda t: ( t[0]
+				, map( lambda keynGroup: consolidate(keynGroup[1])
+	   				 , groupby(t[1], lambda line: line[8]))
 				)
-	, getHeadersnLines\
-	, skip2\
+	, lambda t: ( t[0]
+				, filter( lambda line: line[0] != '' and line[4] != 'All'
+						, map(list, t[1]))
+				)
+	, getHeadersnLines
+	, skip2
 	, fileToLines
 )
 
