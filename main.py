@@ -188,12 +188,9 @@ def skip2(it):
 getRawHoldingPositions = compose(
 	  lambda t: map(lambda line: dict(zip(t[0], line)), t[1])
 	, lambda t: ( t[0]
-				, map( lambda keynGroup: \
-						firstOf(lambda line: line[0] == 'Sub-Total' , keynGroup[1])
-	   				 , groupby(t[1], lambda line: line[8]))
-				)
-	, lambda t: ( t[0]
-				, filter(lambda line: line[0] != '' and line[4] != 'All', t[1])
+				, filter( lambda line: line[0] == 'Sub-Total'
+						, filter( lambda line: line[0] != '' and line[4] != 'All'
+								, t[1]))
 				)
 	, getHeadersnLines
 	, skip2
@@ -211,7 +208,7 @@ getRawHoldingPositions = compose(
 		lines.
 	(2) cash of the same currency can belong to multiple accounts.
 """
-getRawCashHoldings = compose(
+getRawCashPositions = compose(
 	  lambda t: map(lambda line: dict(zip(t[0], line)), t[1])
 	, lambda t: ( t[0]
 				, map( consolidate

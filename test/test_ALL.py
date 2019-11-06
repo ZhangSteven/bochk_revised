@@ -8,7 +8,7 @@ from functools import partial
 from bochk_revised.main import getCurrentDirectory, getRawHoldingPositions\
 								, holdingPosition, dateFromFilename\
 								, filenameWithoutPath, cashPosition\
-								, getRawCashHoldings
+								, getRawCashPositions
 
 
 
@@ -73,7 +73,7 @@ class TestALL(unittest2.TestCase):
 	def testCashPosition(self):
 		inputFile = join(getCurrentDirectory(), 'samples', 'Cash Stt _04112019.xlsx')
 		positions = list(map( partial(cashPosition, dateFromFilename(filenameWithoutPath(inputFile)))
-							, getRawCashHoldings(inputFile)))
+							, getRawCashPositions(inputFile)))
 		self.assertEqual(4, len(positions))
 		self.verifyCashPosition(
 			firstOf(lambda p: p['currency'] == 'CNY', positions))
