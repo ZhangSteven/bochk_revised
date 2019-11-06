@@ -4,7 +4,7 @@
 import unittest2
 from os.path import join
 from utils.iter import firstOf
-from bochk_revised.main import getCurrentDirectory, getRawPositions
+from bochk_revised.main import getCurrentDirectory, getRawHoldingPositions
 
 
 
@@ -17,7 +17,7 @@ class TestALL(unittest2.TestCase):
 
 	def testRawPosition(self):
 		inputFile = join(getCurrentDirectory(), 'samples', 'Holding _17102019.xlsx')
-		positions = list(getRawPositions(inputFile))
+		positions = list(getRawHoldingPositions(inputFile))
 		self.assertEqual(19, len(positions))
 		self.verifyRawPosition(
 			firstOf(lambda p: p['Securities ID'] == 'XS1629465797', positions))
