@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 
 
-
 """
 	[Dictionary] p (raw holding position) => 
 		[Dictionary] Geneva holding position
@@ -40,7 +39,7 @@ holdingPosition = lambda date, p: \
 	  }
 	, (lambda t: \
 		{'ISIN': t[0], 'bloomberg_figi': t[1], 'geneva_investment_id': t[2]}
-	  )(getSecurityIds(p['Custody Account Name'], p['Securities ID Type'], p['Securities ID']))
+	  )(getSecurityIds(p['Securities ID Type'], p['Securities ID']))
 	)
 
 
@@ -59,58 +58,11 @@ cashPosition = lambda date, p: \
 
 
 
-"""
-	[String] accountName, [String] idType, [String] idNumber =>
-		(isin, bloomberg FIGI, geneva invest id)
-"""
-getSecurityIds = lambda accountName, idType, idNumber: \
-	getSecurityIdsFromISIN(accountName, idNumber) if idType == 'ISIN' else \
+getSecurityIds = lambda idType, idNumber: \
+	(idNumber, '', idNumber + ' HTM') if idType == 'ISIN' else \
 	(lambda t: \
-		('', t[1], '') if t[0] == '' else getSecurityIdsFromISIN(accountName, t[0])
+		('', t[1], '') if t[0] == '' else (t[0], t[1], t[0] + ' HTM')
 	)(lookupSecurityId(idType, idNumber))
-
-
-
-"""
-	[String] accountName, [String] isin =>
-		(isin, bloomberg FIGI, geneva invest id)
-"""
-getSecurityIdsFromISIN = lambda accountName, isin: \
-	('', '', isin + ' HTM') if isHTMPortfolio(accountName) and \
-		not afsBondinHTM(accountName, isin) else (isin, '', '')
-
-
-
-isHTMPortfolio = lambda accountName: \
-	True if accountName in \
-		[ 'CLT - CLI MACAU BR (CLASS A-MC) TRUST FUND (BOND)'
-		, 'CLT - CLI MACAU BR (CLASS A-MC) TRUST FD (BD)-PAR'
-		, 'CLT - CLI HK BR (CLASS A-HK) TRUST FD (BOND)- PAR'
-		, 'CLT - CLI HK BR (CLASS A-HK) TRUST FUND (BOND)'
-		, 'CLT - CLI HK BR (CLASS G-HK) TRUST FUND (BOND)'
-		, 'CHINA LIFE FRANKLIN ASSET MANAGEMENT CO LTD'	# 20051
-		] \
-	else False
-
-
-
-def afsBondinHTM(accountName, isin):
-	"""
-	[String] accountName, [String] isin => [Bool] Yes/No
-
-	HTM portfolios sometimes contain available for sale or trading bonds,
-	those bonds are stored in an Excel file for us to lookup.
-	"""
-	def loadList():
-		logger.info('afsBondinHTM(): load mapping from file')
-		lines = fileToLines('AFS Bond in HTM Portfolios.xlsx')
-		pop(lines)	# skip headers
-		return list(map(lambda line: (line[0].strip(), line[1].strip()), lines))
-
-	if not hasattr(afsBondinHTM, 'localList'):
-		afsBondinHTM.localList = loadList()
-
-	return (accountName, isin) in afsBondinHTM.localList
 
 
 

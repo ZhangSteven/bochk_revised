@@ -133,7 +133,7 @@ class TestALL(unittest2.TestCase):
 		self.assertEqual(3000000.00, position['quantity'])
 		self.assertEqual('XS1856799421', position['ISIN'])
 		self.assertEqual('', position['bloomberg_figi'])
-		self.assertEqual('', position['geneva_investment_id'])
+		self.assertEqual('XS1856799421 HTM', position['geneva_investment_id'])
 
 
 
@@ -143,7 +143,7 @@ class TestALL(unittest2.TestCase):
 		self.assertEqual('2019-10-17', position['date'])
 		self.assertEqual('USD', position['currency'])
 		self.assertEqual(1000000.00, position['quantity'])
-		self.assertEqual('', position['ISIN'])
+		self.assertEqual('USG21184AB52', position['ISIN'])
 		self.assertEqual('', position['bloomberg_figi'])
 		self.assertEqual('USG21184AB52 HTM', position['geneva_investment_id'])
 
@@ -155,7 +155,7 @@ class TestALL(unittest2.TestCase):
 		self.assertEqual('2019-11-01', position['date'])
 		self.assertEqual('HKD', position['currency'])
 		self.assertEqual(200000000, position['quantity'])
-		self.assertEqual('', position['ISIN'])
+		self.assertEqual('HK0000163607', position['ISIN'])
 		self.assertEqual('', position['bloomberg_figi'])
 		self.assertEqual('HK0000163607 HTM', position['geneva_investment_id'])
 
@@ -169,7 +169,7 @@ class TestALL(unittest2.TestCase):
 		self.assertEqual(20000000, position['quantity'])
 		self.assertEqual('XS1912494538', position['ISIN'])
 		self.assertEqual('', position['bloomberg_figi'])
-		self.assertEqual('', position['geneva_investment_id'])
+		self.assertEqual('XS1912494538 HTM', position['geneva_investment_id'])
 
 
 
