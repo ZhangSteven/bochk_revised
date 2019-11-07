@@ -6,7 +6,7 @@ from os.path import join
 from utils.iter import firstOf
 from functools import partial
 from bochk_revised.main import getCurrentDirectory, getRawHoldingPositions\
-								, holdingPosition, dateFromFilename\
+								, holdingPosition, dateFromFilenameFull\
 								, filenameWithoutPath, cashPosition\
 								, getRawCashPositions
 
@@ -30,17 +30,37 @@ class TestALL(unittest2.TestCase):
 
 	def testDateFromFilename(self):
 		self.assertEqual( '2019-11-04'
-						, dateFromFilename('BOC Broker Statement 2019-11-04 (A-MC).xls'))
+						, dateFromFilenameFull('BOC Broker Statement 2019-11-04 (A-MC).xls'))
 		self.assertEqual( '2019-11-04'
-						, dateFromFilename('Cash Stt _04112019.xlsx'))
+						, dateFromFilenameFull('Cash Stt _04112019.xlsx'))
 		self.assertEqual( '2019-11-01'
-						, dateFromFilename('BOC Bank Statement 2019-11-01 (Class A-MC BOND) (HKD).xls'))
+						, dateFromFilenameFull('BOC Bank Statement 2019-11-01 (Class A-MC BOND) (HKD).xls'))
+
+
+
+	def testDateFromFilenameError(self):
+		try:
+			dateFromFilenameFull('BOC Broker Statement 12312019')
+		except ValueError:	# date format should be ddmmyyyy instead of mmddyyyy
+			pass
+		else:
+			self.fail('Error should have occurred')
+
+
+
+	def testDateFromFilenameError2(self):
+		try:
+			dateFromFilenameFull('BOC Broker Statement 2019-1130')
+		except ValueError:	# no pattern of date found in file name
+			pass
+		else:
+			self.fail('Error should have occurred')
 
 
 
 	def testHoldingPosition(self):
 		inputFile = join(getCurrentDirectory(), 'samples', 'Holding _17102019.xlsx')
-		positions = list(map( partial(holdingPosition, dateFromFilename(filenameWithoutPath(inputFile)))
+		positions = list(map( partial(holdingPosition, dateFromFilenameFull(inputFile))
 							, getRawHoldingPositions(inputFile)))
 		self.assertEqual(19, len(positions))
 		self.verifyPosition(
@@ -52,7 +72,7 @@ class TestALL(unittest2.TestCase):
 
 	def testHoldingPosition2(self):
 		inputFile = join(getCurrentDirectory(), 'samples', 'BOC Broker Statement 2019-11-01.xls')
-		positions = list(map( partial(holdingPosition, dateFromFilename(filenameWithoutPath(inputFile)))
+		positions = list(map( partial(holdingPosition, dateFromFilenameFull(inputFile))
 							, getRawHoldingPositions(inputFile)))
 		self.assertEqual(159, len(positions))
 		self.verifyPosition3(
@@ -62,7 +82,7 @@ class TestALL(unittest2.TestCase):
 
 	def testHoldingPosition3(self):
 		inputFile = join(getCurrentDirectory(), 'samples', 'BOC Broker Statement 2019-11-04 (A-MC).xls')
-		positions = list(map( partial(holdingPosition, dateFromFilename(filenameWithoutPath(inputFile)))
+		positions = list(map( partial(holdingPosition, dateFromFilenameFull(inputFile))
 							, getRawHoldingPositions(inputFile)))
 		self.assertEqual(55, len(positions))
 		self.verifyPosition4(
@@ -72,7 +92,7 @@ class TestALL(unittest2.TestCase):
 
 	def testCashPosition(self):
 		inputFile = join(getCurrentDirectory(), 'samples', 'Cash Stt _04112019.xlsx')
-		positions = list(map( partial(cashPosition, dateFromFilename(filenameWithoutPath(inputFile)))
+		positions = list(map( partial(cashPosition, dateFromFilenameFull(inputFile))
 							, getRawCashPositions(inputFile)))
 		self.assertEqual(4, len(positions))
 		self.verifyCashPosition(
@@ -81,6 +101,16 @@ class TestALL(unittest2.TestCase):
 			firstOf(lambda p: p['currency'] == 'USD', positions))
 		self.verifyCashPosition3(
 			firstOf(lambda p: p['currency'] == 'HKD', positions))
+
+
+
+	def testCashPosition2(self):
+		inputFile = join( getCurrentDirectory()
+						, 'samples', 'BOC Bank Statement 2019-11-05 (Class A-HK BOND) - Par (USD).xls')
+		positions = list(map( partial(cashPosition, dateFromFilenameFull(inputFile))
+							, getRawCashPositions(inputFile)))
+		self.assertEqual(1, len(positions))
+		self.verifyCashPosition4(positions[0])
 
 
 
@@ -164,3 +194,12 @@ class TestALL(unittest2.TestCase):
 		self.assertEqual('', position['custodian'])
 		self.assertEqual('2019-11-04', position['date'])
 		self.assertAlmostEqual(38.52, position['balance'])
+
+
+
+	def verifyCashPosition4(self, position):
+		self.assertEqual('CLT - CLI HK BR (CLASS A-HK) TRUST FUND (BOND)- PAR', position['portfolio'])
+		self.assertEqual('', position['custodian'])
+		self.assertEqual('2019-11-05', position['date'])
+		self.assertEqual('USD', position['currency'])
+		self.assertAlmostEqual(79130312.05, position['balance'])

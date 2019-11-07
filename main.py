@@ -8,6 +8,7 @@
 
 from itertools import chain, groupby
 from functools import partial
+from datetime import datetime
 from utils.utility import dictToValues, writeCsv
 from utils.iter import pop, firstOf
 from toolz.functoolz import compose
@@ -145,6 +146,8 @@ filenameWithoutPath = lambda filename: \
 """
 	[String] fn => [String] date (yyyy-mm-dd)
 
+	fn is filename without path
+
 	Date can either appear as yyyy-mm-dd or ddmmyyyy in the file name, like:
 
 	BOC Broker Statement 2019-11-04 (A-MC).xls
@@ -153,7 +156,7 @@ filenameWithoutPath = lambda filename: \
 """
 dateFromFilename = lambda fn: \
 	(lambda m: \
-		(lambda s: s[4:8] + '-' + s[2:4] + '-' + s[0:2])(m.group(0)) \
+		(lambda s: datetime.strptime(s, '%d%m%Y').strftime('%Y-%m-%d'))(m.group(0)) \
 		if m != None else \
 		(lambda m2: \
 			m2.group(0)	if m2 != None else throwValueError('dateFromFilename(): {0}'.format(fn))
@@ -162,9 +165,19 @@ dateFromFilename = lambda fn: \
 
 
 
+
+"""
+	[String] filename (full path) => [String] date (yyyy-mm-dd)
+"""
+dateFromFilenameFull = compose(
+	  dateFromFilename
+	, filenameWithoutPath
+)
+
+
+
 def throwValueError(msg):
-	logger.error(msg)
-	raise ValueError
+	raise ValueError(msg)
 
 
 
@@ -177,6 +190,32 @@ def skip2(it):
 	pop(it)
 	pop(it)
 	return it
+
+
+
+isCashFile = lambda inputFile: \
+	(lambda fn: \
+		fn.startswith('cash stt') or \
+		fn.startswith('boc bank statement')
+	)(filenameWithoutPath(inputFile).lower())
+
+
+
+"""
+	[String] inputFile => [Iterable] cash positions for Geneva reconciliation
+"""
+getCashPositions = lambda inputFile: \
+	map( partial(cashPosition, dateFromFilenameFull(inputFile))
+	   , getRawCashPositions(inputFile))
+
+
+
+"""
+	[String] intputFile => [Iterable] positions for Geneva reconciliation
+"""
+getHoldingPositions = lambda inputFile: \
+	map( partial(holdingPosition, dateFromFilenameFull(inputFile))
+	   , getRawHoldingPositions(inputFile))
 
 
 
@@ -249,11 +288,35 @@ getCurrentDirectory = lambda: \
 
 
 
+"""
+	[String] inputFile, [String] outputDir => [String] output csv file
+
+	side effect: write the output csv file in the output directory
+"""
+outputCsv = lambda inputFile, outputDir: \
+	writeCsv( getOutputFileName( inputFile
+							   , '_bochk_' + dateFromFilenameFull(inputFile) + '_cash'
+							   , outputDir)
+			, chain( [getCashHeaders()]
+			   	   , map( partial(dictToValues, getCashHeaders())
+			   	   		, getCashPositions(inputFile)))
+			, delimiter='|') \
+	if isCashFile(inputFile) else \
+	writeCsv( getOutputFileName( inputFile
+							   , '_bochk_' + dateFromFilenameFull(inputFile) + '_position'
+							   , outputDir)
+			, chain( [getHoldingHeaders()]
+			   	   , map( partial(dictToValues, getHoldingHeaders())
+			   	   		, getHoldingPositions(inputFile)))
+			, delimiter='|')
+
+
 
 if __name__ == '__main__':
 	import logging.config
 	logging.config.fileConfig('logging.config', disable_existing_loggers=False)
 
-	inputFile = join(getCurrentDirectory(), 'samples', 'Cash Stt _04112019.xlsx')
-	for p in getRawCashHoldings(inputFile):
-		print(p['Account Number'], p['Currency'], p['Current Ledger Balance'])
+	print(outputCsv(join(getCurrentDirectory(), 'samples', 'Cash Stt _04112019.xlsx'), ''))
+	print(outputCsv(join(getCurrentDirectory(), 'samples', 'BOC Broker Statement 2019-11-01.xls'), ''))
+	print(outputCsv(join(getCurrentDirectory(), 'samples', 'Holding _17102019.xlsx'), ''))
+	print(outputCsv(join(getCurrentDirectory(), 'samples', 'BOC Bank Statement 2019-11-05 (Class A-HK BOND) - Par (USD).xls'), ''))
