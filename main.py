@@ -12,6 +12,7 @@ from datetime import datetime
 from utils.utility import dictToValues, writeCsv
 from utils.iter import pop, firstOf
 from toolz.functoolz import compose
+from toolz.functoolz import do as justdo
 from toolz.itertoolz import groupby as groupbyToolz
 from nomura.main import fileToLines, getHeadersnLines, getCashHeaders \
 						, getHoldingHeaders, getOutputFileName
@@ -66,23 +67,29 @@ getSecurityIds = lambda idType, idNumber: \
 
 
 
+"""
+	Load the mapping (security id type, security id) -> 
+		(isin, bloomberg figi code) from an Excel file as a dictionary
+	object.
+"""
+loadMapping = compose(
+	  dict
+	, partial( map
+			 , lambda line: ( (line[0].strip(), line[1].strip())
+							, (line[3].strip(), line[4].strip())
+							)
+			 )
+	, partial(justdo, pop)
+	, lambda f='Security Id Lookup.xlsx': fileToLines(f)
+)
+
+
+
 def lookupSecurityId(idType, idNumber):
 	"""
-	[String] idType, [String] idNumber =>
-		([String] ISIN, [String] Bloomberg FIGI)
-
-	Read an Excel to lookup the security's ISIN code and Bloomberg FIGI code
-	if the security id type is not ISIN.
+		[String] idType, [String] idNumber =>
+			([String] ISIN, [String] Bloomberg FIGI)
 	"""
-	def loadMapping():
-		logger.info('lookupSecurityId(): load mapping from file')
-		lines = fileToLines('Security Id Lookup.xlsx')
-		pop(lines)	# skip headers
-		return dict(map( lambda line: ( (line[0].strip(), line[1].strip())
-									  , (line[3].strip(), line[4].strip())
-									  )
-					   , lines))
-
 	if not hasattr(lookupSecurityId, 'localMap'):
 		lookupSecurityId.localMap = loadMapping()
 
@@ -117,7 +124,6 @@ dateFromFilename = lambda fn: \
 
 
 
-
 """
 	[String] filename (full path) => [String] date (yyyy-mm-dd)
 """
@@ -133,15 +139,15 @@ def throwValueError(msg):
 
 
 
-def skip2(it):
-	"""
+"""
 	[Iterable] it => [Iterable] it, with the first 2 elements skipped
 
-	NOT a pure function, the input iterator is changed.
-	"""
-	pop(it)
-	pop(it)
-	return it
+	NOT a pure function, because the input iterator is changed.
+"""
+skip2 = compose(
+	  partial(justdo, pop)
+	, partial(justdo, pop)
+)
 
 
 
