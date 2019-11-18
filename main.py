@@ -68,9 +68,11 @@ getSecurityIds = lambda idType, idNumber: \
 
 
 """
-	Load the mapping (security id type, security id) -> 
-		(isin, bloomberg figi code) from an Excel file as a dictionary
-	object.
+	[String] filename (optional) => 
+		[Dictioanry] (security id type, security id) -> 
+					 (isin, bloomberg figi code)
+
+	Load the mapping from an Excel file as a dictionary object.
 """
 loadMapping = compose(
 	  dict
