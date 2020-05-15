@@ -254,21 +254,46 @@ getCurrentDirectory = lambda: \
 	side effect: write the output csv file in the output directory
 """
 outputCsv = lambda inputFile, outputDir: \
-	writeCsv( getOutputFileName( inputFile
-							   , '_bochk_' + dateFromFilenameFull(inputFile) + '_cash'
-							   , outputDir)
-			, chain( [getCashHeaders()]
-			   	   , map( partial(dictToValues, getCashHeaders())
-			   	   		, getCashPositions(inputFile)))
-			, delimiter='|') \
+	writeOutputCsv( inputFile
+				  , outputDir
+				  , '_bochk_' + dateFromFilenameFull(inputFile) + '_cash'
+				  , getCashHeaders()
+				  , getCashPositions(inputFile)
+				  ) \
 	if isCashFile(inputFile) else \
-	writeCsv( getOutputFileName( inputFile
-							   , '_bochk_' + dateFromFilenameFull(inputFile) + '_position'
-							   , outputDir)
-			, chain( [getHoldingHeaders()]
-			   	   , map( partial(dictToValues, getHoldingHeaders())
-			   	   		, getHoldingPositions(inputFile)))
-			, delimiter='|')
+	writeOutputCsv( inputFile
+				  , outputDir
+				  , '_bochk_' + dateFromFilenameFull(inputFile) + '_position'
+				  , getHoldingHeaders()
+				  , getHoldingPositions(inputFile)
+				  )
+
+
+
+writeOutputCsv = lambda inputFile, outputDir, suffix, headers, positions: \
+	writeCsv( getOutputFileName(inputFile, suffix, outputDir)
+			, chain([headers], map(partial(dictToValues, headers), positions))
+			, delimiter='|'
+			)
+
+
+
+# outputCsv = lambda inputFile, outputDir: \
+# 	writeCsv( getOutputFileName( inputFile
+# 							   , '_bochk_' + dateFromFilenameFull(inputFile) + '_cash'
+# 							   , outputDir)
+# 			, chain( [getCashHeaders()]
+# 			   	   , map( partial(dictToValues, getCashHeaders())
+# 			   	   		, getCashPositions(inputFile)))
+# 			, delimiter='|') \
+# 	if isCashFile(inputFile) else \
+# 	writeCsv( getOutputFileName( inputFile
+# 							   , '_bochk_' + dateFromFilenameFull(inputFile) + '_position'
+# 							   , outputDir)
+# 			, chain( [getHoldingHeaders()]
+# 			   	   , map( partial(dictToValues, getHoldingHeaders())
+# 			   	   		, getHoldingPositions(inputFile)))
+# 			, delimiter='|')
 
 
 
