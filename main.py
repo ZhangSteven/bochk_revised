@@ -66,7 +66,7 @@ toStockId = lambda s: \
 
 getSecurityIds = lambda idType, idNumber: \
 	(idNumber, '', idNumber + ' HTM') if idType == 'ISIN' else \
-	('', '', toStockId(idNumber) + ' HK Equity') if idType == 'Market' and idNumber.startswith('HK ') else \
+	('', '', toStockId(idNumber) + ' HK') if idType == 'Market' and idNumber.startswith('HK ') else \
 	(lambda t: \
 		('', t[1], '') if t[0] == '' else (t[0], t[1], t[0] + ' HTM')
 	)(lookupSecurityId(idType, idNumber))
