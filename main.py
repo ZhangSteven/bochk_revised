@@ -6,7 +6,7 @@
 # Program structure very similar to nomura.main.py
 # 
 
-from itertools import chain, groupby
+from itertools import chain, groupby, dropwhile
 from functools import partial
 from datetime import datetime
 from utils.utility import dictToValues, writeCsv
@@ -59,11 +59,28 @@ cashPosition = lambda date, p: \
 
 
 
+toStockId = lambda s: \
+	''.join(dropwhile(lambda x: x == '0', s[3:]))
+
+
+
 getSecurityIds = lambda idType, idNumber: \
 	(idNumber, '', idNumber + ' HTM') if idType == 'ISIN' else \
+	('', '', toStockId(idNumber) + ' HK Equity') if idType == 'Market' and idNumber.startswith('HK ') else \
 	(lambda t: \
 		('', t[1], '') if t[0] == '' else (t[0], t[1], t[0] + ' HTM')
 	)(lookupSecurityId(idType, idNumber))
+
+
+
+"""
+	Get the absolute path to the directory where this module is in.
+
+	This piece of code comes from:
+
+	http://stackoverflow.com/questions/3430372/how-to-get-full-path-of-current-files-directory-in-python
+"""
+getCurrentDirectory = lambda: dirname(abspath(__file__))
 
 
 
@@ -74,16 +91,16 @@ getSecurityIds = lambda idType, idNumber: \
 
 	Load the mapping from an Excel file as a dictionary object.
 """
-loadMapping = compose(
-	  dict
-	, partial( map
-			 , lambda line: ( (line[0].strip(), line[1].strip())
-							, (line[3].strip(), line[4].strip())
-							)
-			 )
-	, partial(justdo, pop)
-	, lambda f='Security Id Lookup.xlsx': fileToLines(f)
-)
+# loadMapping = compose(
+# 	  dict
+# 	, partial( map
+# 			 , lambda line: ( (line[0].strip(), line[1].strip())
+# 							, (line[3].strip(), line[4].strip())
+# 							)
+# 			 )
+# 	, partial(justdo, pop)
+# 	, fileToLines
+# )(join(getCurrentDirectory(), 'Security Id Lookup.xlsx'))
 
 
 
@@ -93,7 +110,17 @@ def lookupSecurityId(idType, idNumber):
 			([String] ISIN, [String] Bloomberg FIGI)
 	"""
 	if not hasattr(lookupSecurityId, 'localMap'):
-		lookupSecurityId.localMap = loadMapping()
+		lookupSecurityId.localMap = compose(
+			  dict
+			, partial( map
+					 , lambda line: ( (line[0].strip(), line[1].strip())
+									, (line[3].strip(), line[4].strip())
+									)
+					 )
+			, partial(justdo, pop)
+			, fileToLines
+		)(join(getCurrentDirectory(), 'Security Id Lookup.xlsx'))
+
 
 	return lookupSecurityId.localMap[(idType, idNumber)]
 
@@ -233,18 +260,6 @@ def consolidate(lineGroup):
 	r = lineGroup[0].copy()
 	r[7] = sum(map(lambda L: L[7], lineGroup))
 	return r
-
-
-
-"""
-	Get the absolute path to the directory where this module is in.
-
-	This piece of code comes from:
-
-	http://stackoverflow.com/questions/3430372/how-to-get-full-path-of-current-files-directory-in-python
-"""
-getCurrentDirectory = lambda: \
-	dirname(abspath(__file__))
 
 
 
